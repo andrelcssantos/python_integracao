@@ -1,0 +1,33 @@
+import requests
+import json
+import cx_Oracle
+from collections import namedtuple
+import datetime
+
+empresa = 1
+filial = 1
+
+url = "url_aqui"
+payload = "XXXXXXXX"
+headers = {
+    'Content-Type': "application/x-www-form-urlencoded",
+    'cache-control': "no-cache",
+    'Postman-Token': "381d5076-33d5-446e-9a55-baec2ab71c55"
+}
+
+response = requests.request("POST", url, data=payload, headers=headers)
+
+x = json.loads(response.text, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+
+connection = cx_Oracle.connect('saptestrc/saptestrc@SAPIENS_PROD')
+cursor = connection.cursor()
+sql = """insert into usu_tcl_token (usu_codemp, usu_codfil, usu_acctok, usu_toktyp, usu_expdat) 
+         values(:empresa, :filial, :acctok, :typtok, :expdat)"""
+cursor.execute(sql, {"empresa" : int(empresa),
+                     "filial" : int(filial),
+                     "acctok" : str(x.access_token),
+                     "typtok" : str(x.token_type),
+                     "expdat" : int(x.expires_in)})
+
+connection.commit()
+cursor.close()
