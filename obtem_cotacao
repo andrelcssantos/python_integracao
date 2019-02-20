@@ -1,0 +1,78 @@
+import requests
+import json
+import cx_Oracle
+from collections import namedtuple
+import time
+
+connection = cx_Oracle.connect('xxxxx/xxxxx@xe')
+cursor = connection.cursor()
+sql_verificaData = 'select usu_acctok, usu_toktyp from usu_tcl_token where usu_codemp = 1 and usu_datger = :datahoje'
+cursor.execute(sql_verificaData, {'datahoje' : time.strftime("%d/%m/%Y")})
+
+for usu_acctok, usu_toktyp in cursor:
+    authorization = usu_toktyp + ' ' + usu_acctok
+cursor.close()
+
+url = "xxxxx"
+
+payload = ""
+headers = {
+    'Authorization': authorization,
+    'cache-control': "no-cache",
+    'Postman-Token': "65a104eb-1210-4eeb-880b-ceed78b21364"
+    }
+
+response = requests.request("GET", url, data=payload, headers=headers)
+
+x = json.loads(response.text, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+
+for a in x:
+    print(a.numeroComlink)
+
+connection = cx_Oracle.connect('xxxxx/xxxxx@xxxxx')
+cursor = connection.cursor()
+sql_insert = """
+insert into usu_obt_cot values (:usu_numclk, :usu_numcot, :usu_qtdite, :usu_nomemp, :usu_cnpemp,
+                                :usu_datlib, :usu_valcot, :usu_nomsol, :usu_obscot, :usu_locret,
+                                :usu_codcli, :usu_nomcom, :usu_tabcon, :usu_przent, :usu_novmar,
+                                :usu_marcot, :usu_marobg, :usu_vldmar, :usu_endcli, :usu_numcli,
+                                :usu_baicli, :usu_cepcli, :usu_cidcli, :usu_ufscli, :usu_sitcot,
+                                :usu_cfnctr, :usu_przvld, :usu_infncm, :usu_obgncm, :usu_codstr,
+                                :usu_obgstr, :usu_msgfor)
+"""
+cursor.execute(sql_insert, {"usu_numclk": int(x.numeroComlink),
+                            "usu_numcot": str(x.numeroCotacao),
+                            "usu_qtdite": int(x.itens),
+                            "usu_nomemp": str(x.empresa),
+                            "usu_cnpemp": str(x.cnpj),
+                            "usu_datlib": str(x.dataLiberacao),
+                            "usu_valcot": str(x.validade),
+                            "usu_nomsol": str(x.nomeSolicitante),
+                            "usu_obscot": str(x.observacoes),
+                            "usu_locret": str(x.localRetirada),
+                            "usu_codcli": int(x.codigoCliente),
+                            "usu_nomcom": str(x.comprador),
+                            "usu_tabcon": int(x.possuiTabelaCondicao),
+                            "usu_przent": int(x.possuiTabelaPrazoEntrega),
+                            "usu_novmar": int(x.aceitaNovaMarca),
+                            "usu_marcot": int(x.aceitaMarcaCotada),
+                            "usu_marobg": int(x.marcaCotadaObrigatoria),
+                            "usu_vldmar": int(x.validaMarcaCotada),
+                            "usu_endcli": str(x.endereco),
+                            "usu_numcli": str(x.enderecoNumero),
+                            "usu_baicli": str(x.bairro),
+                            "usu_cepcli": str(x.cep),
+                            "usu_cidcli": str(x.cidade),
+                            "usu_ufscli": str(x.uf),
+                            "usu_sitcot": int(x.status),
+                            "usu_cfnctr": str(x.cfnCtrl),
+                            "usu_przvld": int(x.prazoValidade),
+                            "usu_infncm": str(x.informarNCM),
+                            "usu_obgncm": str(x.obrigatorioInformarNCM),
+                            "usu_codstr": str(x.informarCodigoSituacaoTributaria),
+                            "usu_obgstr": str(x.obrigatorioInformarCodigoSituacaoTributaria),
+                            "usu_msgfor": str(x.mensagemAoFornecedor)})
+
+connection.commit()
+cursor.close()
+
